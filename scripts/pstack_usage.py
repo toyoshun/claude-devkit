@@ -60,6 +60,12 @@ RULES: tuple[Rule, ...] = (
         "and see the PR's CI and reviews through as it says.",
     ),
     Rule(
+        frozenset({"pr_opened"}),
+        "goal-check",
+        "Read {devkit}/skills/goal-check/SKILL.md and have a fresh agent "
+        "check the result against the owner's request before you report it.",
+    ),
+    Rule(
         frozenset({"code", "pr_opened"}),
         "no-comments",
         "Read {root}/skills/no-comments/SKILL.md "
@@ -271,7 +277,7 @@ def met(key: str, rec: Record) -> bool:
         return name in rec["playbooks"]
     if key == "pstack":
         return bool(rec["skills"]) or any(s != ROUTER for s in rec["project_skills"])
-    return key in rec["skills"]
+    return key in rec["skills"] or key in rec["project_skills"]
 
 
 def block_reason(keys: list[str], devkit: Path, root: Path | None) -> str:

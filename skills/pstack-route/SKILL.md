@@ -46,6 +46,7 @@ When the entry's work is done, run each matching row from the top. The hook chec
 | The design is contested, or the change is large | `interrogate` |
 | You wrote docs or prose | ★`unslop` (docs and PR text) |
 | Opening a PR | ★poteto-mode, `opening-a-pr` (it runs `technical-writing`) |
+| Before reporting a result to the owner | ★`goal-check` (this plugin's `skills/goal-check/SKILL.md`): a fresh agent checks the real result against the owner's own words. The hook asks for it once a PR is opened |
 | After opening a PR | ★poteto-mode, `babysit`. Whether you may merge on green CI is up to the repository's rules |
 | After merging a PR | ★`reflect`. Turn lessons into proposed skill edits: in this repository for lessons about it, in claude-devkit for lessons any repository could use. With no lesson, say so in one line |
 
