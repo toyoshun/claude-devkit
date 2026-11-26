@@ -42,7 +42,7 @@ class Env:
         lines = ["not json"]
         for n, (name, tool_input) in enumerate(calls):
             use = {"type": "tool_use", "id": f"t{n}", "name": name, "input": tool_input}
-            result = {"type": "tool_result", "tool_use_id": f"t{n}"}
+            result: dict[str, Any] = {"type": "tool_result", "tool_use_id": f"t{n}"}
             if n in failed:
                 result["is_error"] = True
             lines.append(json.dumps({"message": {"content": [use]}}))

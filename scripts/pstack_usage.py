@@ -18,6 +18,8 @@ EDIT_TOOLS = ("Edit", "Write", "NotebookEdit")
 CLOUD_DIR = Path("/mnt/project-files")
 DEVKIT = Path(__file__).absolute().parent.parent
 PROSE_SUFFIXES = (".md", ".mdx", ".txt")
+ROUTER = "pstack-route"
+GH_PR_RE = re.compile(r"\bgh\s+pr\s+(create|merge)\b")
 
 
 class Record(TypedDict):
@@ -73,7 +75,8 @@ RULES: tuple[Rule, ...] = (
         frozenset({"pr_merged"}),
         "reflect",
         "Read {root}/skills/reflect/SKILL.md "
-        "and turn this session's lessons into proposed skill edits.",
+        "and turn this session's lessons into proposed skill edits. "
+        "If there is no lesson, say so in one line.",
     ),
 )
 
@@ -141,8 +144,9 @@ def transcript_files(transcript: Path) -> list[Path]:
     return [transcript, *subs]
 
 
-def tool_calls(files: list[Path]) -> list[tuple[str, dict[str, Any]]]:
-    calls: list[tuple[str, dict[str, Any]]] = []
+def tool_calls(files: list[Path]) -> list[tuple[str, dict[str, Any], bool]]:
+    uses: list[tuple[str, str, dict[str, Any]]] = []
+    failed: set[str] = set()
     for path in files:
         try:
             lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
@@ -158,12 +162,18 @@ def tool_calls(files: list[Path]) -> list[tuple[str, dict[str, Any]]]:
             if not isinstance(content, list):
                 continue
             for item in content:
-                if isinstance(item, dict) and item.get("type") == "tool_use":
+                if not isinstance(item, dict):
+                    continue
+                if item.get("type") == "tool_result" and item.get("is_error"):
+                    failed.add(str(item.get("tool_use_id")))
+                if item.get("type") == "tool_use":
                     tool_input = item.get("input")
                     name = item.get("name")
                     if isinstance(name, str) and isinstance(tool_input, dict):
-                        calls.append((name, tool_input))
-    return calls
+                        uses.append((str(item.get("id")), name, tool_input))
+    return [
+        (name, tool_input, use_id not in failed) for use_id, name, tool_input in uses
+    ]
 
 
 def _add(items: list[str], value: str) -> None:
@@ -202,7 +212,7 @@ def build_record(
     pstack = pstack_skill_names(cache) | set(ALIASES)
     calls = tool_calls(transcript_files(transcript))
     edits: list[tuple[Path, Path]] = []
-    for name, tool_input in calls:
+    for name, tool_input, _ in calls:
         path = tool_input.get("file_path") or tool_input.get("notebook_path")
         found = edited_repo(str(path), cwd) if name in EDIT_TOOLS and path else None
         if found:
@@ -225,7 +235,7 @@ def build_record(
     triggers: set[str] = set()
     for target, _ in edits:
         triggers |= _edit_triggers(target)
-    for name, tool_input in calls:
+    for name, tool_input, ok in calls:
         if name == "Skill":
             raw = str(tool_input.get("skill", ""))
             raw = raw.removeprefix("pstack:").removeprefix("devkit:")
@@ -237,14 +247,16 @@ def build_record(
             text = str(tool_input.get("command", ""))
             if "git commit" in text:
                 triggers.add("changed")
+            for action in GH_PR_RE.findall(text) if ok else ():
+                triggers.add("pr_opened" if action == "create" else "pr_merged")
         for playbook in PLAYBOOK_RE.findall(text):
             _add(rec["skills"], "poteto-mode")
             _add(rec["playbooks"], playbook)
         for raw in SKILL_RE.findall(text):
             _classify(raw, pstack, project, rec)
-        if name.endswith("create_pull_request"):
+        if ok and name.endswith("create_pull_request"):
             triggers.add("pr_opened")
-        if name.endswith("merge_pull_request"):
+        if ok and name.endswith("merge_pull_request"):
             triggers.add("pr_merged")
     rec["triggers"] = sorted(triggers)
     rec["missing"] = [
@@ -258,7 +270,7 @@ def met(key: str, rec: Record) -> bool:
     if kind == "playbook":
         return name in rec["playbooks"]
     if key == "pstack":
-        return bool(rec["skills"])
+        return bool(rec["skills"]) or any(s != ROUTER for s in rec["project_skills"])
     return key in rec["skills"]
 
 
