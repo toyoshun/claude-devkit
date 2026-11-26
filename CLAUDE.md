@@ -1,16 +1,17 @@
 # claude-devkit
 
-どのリポジトリでも使う Claude Code の共通の道具（pstack の振り分け、使用記録、編集直後の検査、開発の考え方）を入れるプラグイン。中身と入れ方は `README.md`。
+A Claude Code plugin with shared tools for any repository: pstack routing, a pstack usage record, checks right after each edit, and pstack's principles as an always-on rule. See `README.md` for contents and install steps.
 
-## 決まり
+## Rules
 
-- ここには、どのリポジトリでも同じに使えるものだけを入れる。特定のリポジトリだけのもの（記事、ドメインのスキル、そのリポジトリの検査）は、そのリポジトリの `.claude/pstack-route.md` と `.claude/devkit.json` に置く。
-- フックのスクリプト（`scripts/*.py`）は標準ライブラリだけで書き、Python 3.9 でも動く書き方にする。フックは Mac の system python3 で動くため。
-- フックは失敗してもセッションを止めない。
-- `install.sh` と `scripts/bootstrap.sh` は何度走らせても同じ結果にする。macOS の bash 3.2 で動く書き方にする。
-- 秘密情報、個人情報、特定のリポジトリの運用データを入れない。このリポジトリは公開されている。
+- Only put things here that every repository can use unchanged. Anything specific to one repository (its content, domain skills, its own checks) goes in that repository's `.claude/pstack-route.md` and `.claude/devkit.json`.
+- Write everything in this repository in English: code, comments, script output, docs, skills and rules. The owner talks to Claude in Japanese; `templates/project-instructions.md` stays Japanese because the owner pastes it into project instructions.
+- Hook scripts (`scripts/*.py`) use the standard library only and stay Python 3.9 compatible, because hooks run under the Mac's system python3.
+- A failing hook never stops the session.
+- `install.sh` and `scripts/bootstrap.sh` are idempotent and run on macOS bash 3.2.
+- No secrets, personal data, or any repository's operational data. This repository is public.
 
-## 確認
+## Checks
 
 ```bash
 uv sync --frozen

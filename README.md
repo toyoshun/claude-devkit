@@ -1,44 +1,44 @@
-# devkit
+# claude-devkit
 
-どのリポジトリでも使える、pstack まわりの共通の道具をまとめた Claude Code のプラグイン。
+A Claude Code plugin with shared pstack tooling that works in any repository.
 
-## 中身
+## Contents
 
-| 場所 | 役目 |
+| Path | What it does |
 | --- | --- |
-| `skills/pstack-route/` | 作業の種類から pstack の入口と、作業後に続けて回すスキルを選ぶ |
-| `scripts/pstack_usage.py` | Stop フック。使った pstack のスキルを記録し、抜けていれば知らせる。`report` で一覧 |
-| `scripts/edit_check.py` | PostToolUse フック。編集した1ファイルを検査する。`*.py` は ruff。リポジトリごとの検査は `.claude/devkit.json` |
-| `scripts/bootstrap.sh` | SessionStart フック。`poteto-mode-auto` の写しと、`~/.claude/rules/` のルールをそろえる。考え方のルールは毎回 devkit の版で置き直し、モデル設定と Codex のルールは既存を上書きしない |
-| `rules/` | どの作業にも効く開発の考え方（`pstack-principles.md`、pstack の原則を短くしたもの）、pstack のモデル設定、Codex を使うルール（`codex` があるときだけ置く） |
-| `templates/project-instructions.md` | 新しい Claude プロジェクトの指示に貼る文面 |
-| `install.sh` | 新しい環境に入れる |
+| `skills/pstack-route/` | Picks the pstack entry point for the kind of work, and the skills to chain after it |
+| `scripts/pstack_usage.py` | Stop hook. Records which pstack skills a session used and flags skipped chain steps. `report` lists the records |
+| `scripts/edit_check.py` | PostToolUse hook. Checks the one file just edited: ruff for `*.py`, plus the repository's own checks from `.claude/devkit.json` |
+| `scripts/bootstrap.sh` | SessionStart hook. Rebuilds the `poteto-mode-auto` copy and fills `~/.claude/rules/`. It rewrites the principles rule every time and never overwrites existing model or Codex rules |
+| `rules/` | `pstack-principles.md` (pstack's principles, short, loaded in every session), pstack model roles, and the Codex rule (installed only where `codex` exists) |
+| `templates/project-instructions.md` | Text to paste into a new Claude project's instructions |
+| `install.sh` | Installs everything into `~/.claude` |
 
-## 入れ方
+## Install
 
-Mac では、チェックアウトして実行する。
+Mac:
 
 ```bash
 git clone https://github.com/toyoshun/claude-devkit ~/dev/claude-devkit
 bash ~/dev/claude-devkit/install.sh
 ```
 
-`~/.claude/skills/devkit` にリンクが張られ、プラグインとして読み込まれる。`--copy` を付けるとコピーで入れる。pstack が未導入で `claude` コマンドがあれば、pstack も入れる。
+This links `~/.claude/skills/devkit` to the checkout, so Claude Code loads it as a plugin. `--copy` copies instead of linking. If pstack is missing and the `claude` command exists, it installs pstack too. Update with `git pull` in the checkout; the next session uses the new version.
 
-クラウド環境では、環境のセットアップスクリプトに1行足す。
+Cloud environment: add one line to the environment's setup script.
 
 ```bash
 git clone --depth 1 https://github.com/toyoshun/claude-devkit /opt/claude-devkit && bash /opt/claude-devkit/install.sh
 ```
 
-何度走らせても同じ結果になる。Mac ではリンクなので、`git pull` すれば次のセッションから新しい版になる。
+Rerunning is safe. Rules files are loaded at session start, so run `install.sh` before the first session (a setup script does).
 
-新しい Claude プロジェクトを作ったら、`templates/project-instructions.md` の文面をプロジェクトの指示に貼る。
+For a new Claude project, paste `templates/project-instructions.md` into the project instructions.
 
-## リポジトリごとの足し方
+## Per-repository additions
 
-- `.claude/pstack-route.md`: そのリポジトリだけの振り分けの行と、作業後に回すスキルの行。`pstack-route` スキルが先に読み、表より優先する。
-- `.claude/devkit.json`: 編集後の検査を足す。一致したファイルの相対パスを末尾に付けて、リポジトリの根から実行する。`python3` と書くと、`.venv/bin/python` があればそちらを使う。
+- `.claude/pstack-route.md`: entry rows and chain rows for that repository only. The `pstack-route` skill reads it first, and its rows win.
+- `.claude/devkit.json`: extra checks after each edit. Each matching file's relative path is appended to `run`, which runs from the repository root. `python3` uses `.venv/bin/python` when it exists.
 
 ```json
 {
@@ -48,15 +48,11 @@ git clone --depth 1 https://github.com/toyoshun/claude-devkit /opt/claude-devkit
 }
 ```
 
-検査は出力があれば exit 2 で Claude に知らせる。作業は止めない。
+A check that prints anything exits 2, which shows the output to Claude without stopping the work.
 
-## リポジトリに残すもの
+## Records
 
-記事・文章の検査・ドメインのスキルなど、そのリポジトリだけのものは、リポジトリに置く。devkit に入れるのは、どのリポジトリでも同じに使えるものだけ。
-
-## 記録
-
-クラウドでは `/mnt/project-files/pstack-usage/`、Mac では `~/.claude/pstack-usage/` に、1セッション1ファイルで残る。`PSTACK_USAGE_DIR` で置き場を変えられる。
+One file per session: `/mnt/project-files/pstack-usage/` in the cloud, `~/.claude/pstack-usage/` on a Mac. Set `PSTACK_USAGE_DIR` to change it.
 
 ```bash
 python3 ~/.claude/skills/devkit/scripts/pstack_usage.py report
