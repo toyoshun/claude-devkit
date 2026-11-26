@@ -1,6 +1,6 @@
 ---
 name: goal-check
-description: Before telling the owner that work is done, have a fresh agent check the real result against the owner's own words, goal by goal, with evidence it gathered itself. Use before the final report of any task that changed something, and when the Stop hook asks for it.
+description: Before telling the owner that work is done, have a fresh agent check the real result against the owner's own words, goal by goal, with evidence it gathered itself. Use before the final report of any task that changed something. The Stop hook asks for it once a PR is opened.
 ---
 
 # Goal check
