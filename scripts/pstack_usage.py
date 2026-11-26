@@ -42,38 +42,38 @@ RULES: tuple[Rule, ...] = (
     Rule(
         frozenset({"changed"}),
         "pstack",
-        "変更を加えたのに pstack を使っていません。{devkit}/skills/"
-        "pstack-route/SKILL.md を読み、選ばれた入口に従ってください。",
+        "You changed files without using pstack. Read {devkit}/skills/"
+        "pstack-route/SKILL.md and follow the entry it picks.",
     ),
     Rule(
         frozenset({"pr_opened"}),
         "playbook:opening-a-pr",
-        "{root}/skills/poteto-mode/playbooks/opening-a-pr.md を読み、"
-        "PR の本文と体裁を手順に合わせてください。",
+        "Read {root}/skills/poteto-mode/playbooks/opening-a-pr.md "
+        "and bring the PR title and body in line with it.",
     ),
     Rule(
         frozenset({"pr_opened"}),
         "playbook:babysit",
-        "{root}/skills/poteto-mode/playbooks/babysit.md を読み、"
-        "PR の CI とレビューを手順どおりに見届けてください。",
+        "Read {root}/skills/poteto-mode/playbooks/babysit.md "
+        "and see the PR's CI and reviews through as it says.",
     ),
     Rule(
         frozenset({"code", "pr_opened"}),
         "no-comments",
-        "{root}/skills/no-comments/SKILL.md を読み、"
-        "コードに足した不要なコメントを消してください。",
+        "Read {root}/skills/no-comments/SKILL.md "
+        "and remove the comments the change added that it does not need.",
     ),
     Rule(
         frozenset({"prose", "pr_opened"}),
         "unslop",
-        "{root}/skills/unslop/SKILL.md を読み、"
-        "文書と PR の文章から AI らしい言い回しを取ってください。",
+        "Read {root}/skills/unslop/SKILL.md "
+        "and remove AI tells from the docs and PR text.",
     ),
     Rule(
         frozenset({"pr_merged"}),
         "reflect",
-        "{root}/skills/reflect/SKILL.md を読み、"
-        "今回の作業から次に残す学びをまとめてください。",
+        "Read {root}/skills/reflect/SKILL.md "
+        "and turn this session's lessons into proposed skill edits.",
     ),
 )
 
@@ -264,9 +264,7 @@ def met(key: str, rec: Record) -> bool:
 
 def block_reason(keys: list[str], devkit: Path, root: Path | None) -> str:
     fill = {"root": str(root) if root else "<pstack>", "devkit": str(devkit)}
-    lines = [
-        "pstack のチェーンがまだ完了していません。終える前に次を実行してください。"
-    ]
+    lines = ["The pstack chain is not finished. Before you stop, do the following."]
     lines += [f"- {r.message.format(**fill)}" for r in RULES if r.key in keys]
     return "\n".join(lines)
 

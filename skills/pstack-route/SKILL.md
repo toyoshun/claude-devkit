@@ -1,58 +1,58 @@
 ---
 name: pstack-route
-description: 作業の種類から pstack の入口（poteto-mode の playbook か単独のスキル）を選び、作業の後に続けて回す pstack のスキルを決める。スレッドやタスクの最初、作業の種類が変わったとき、Stop フックに pstack の連鎖が足りないと言われたときに使う。
+description: Pick the pstack entry point (a poteto-mode playbook or a standalone skill) for the kind of work, and the pstack skills to chain after it. Use at the start of a thread or task, when the kind of work changes, or when the Stop hook says the pstack chain is incomplete.
 ---
 
-# pstack の振り分けと連鎖
+# pstack routing and chaining
 
-pstack は `~/.claude/plugins/cache/cursor-plugins/pstack/<最新の版>/` にある（以下 `<pstack>`）。
-pstack のスキルは Skill ツールから呼べないものが多い。ファイルを **Read ツールで** 読んで従う。読んだ記録が Stop フック（`<devkit>/scripts/pstack_usage.py`、`<devkit>` は `~/.claude/skills/devkit`）に残り、何を選んだかの監視と、使い忘れの警告に使われる。
-最初に `<pstack>/docs/harness/claude-code.md` を読む。
+pstack lives at `~/.claude/plugins/cache/cursor-plugins/pstack/<newest version>/` (below, `<pstack>`).
+Most pstack skills cannot be called through the Skill tool. Read their files with the **Read tool** and follow them. The Stop hook (`<devkit>/scripts/pstack_usage.py`, where `<devkit>` is `~/.claude/skills/devkit`) records those reads, to show what was picked and to warn about skipped steps.
+First read `<pstack>/docs/harness/claude-code.md`.
 
-リポジトリに `.claude/pstack-route.md` があれば先に読む。そこにある行は、この表より優先する。
+If the repository has `.claude/pstack-route.md`, read it first. Its rows win over the tables below.
 
-## 1. 入口を選ぶ
+## 1. Pick the entry
 
-上から順に見て、最初に当てはまる行を選ぶ。playbook は `poteto-mode-auto` スキルを読み込んでから `<pstack>/skills/poteto-mode/playbooks/<名前>.md` を読む。
+Take the first row that matches, from the top. For a playbook, load the `poteto-mode-auto` skill, then read `<pstack>/skills/poteto-mode/playbooks/<name>.md`.
 
-| 作業 | 入口 |
+| Work | Entry |
 | --- | --- |
-| 数分で終わる読み取りだけの確認（設定や状態を見る、質問に答える） | pstack を使わない |
-| 前のスレッドやブランチの続き | poteto-mode → `session-pickup`。自分の最近の作業を集めるだけなら `recall` |
-| 大きい・複数の部分にまたがる・オーナーが離れている間に進める作業 | `figure-it-out` と `show-me-your-work` |
-| 計画だけを書く（実装しない） | poteto-mode → `multi-phase-plan` |
-| 不具合を直す | poteto-mode → `bug-fix`。安いテストが書けるなら `tdd` も |
-| 新しい機能・仕組みを足す | poteto-mode → `feature` |
-| 振る舞いを変えずに作り替える | poteto-mode → `refactoring` |
-| Skill・`CLAUDE.md`・手順書を作る・直す | poteto-mode → `authoring-a-skill` |
-| 案が複数あり、作って比べないと決まらない | poteto-mode → `prototype`。型と構成だけなら `architect` |
-| 原因や現状を調べる | poteto-mode → `investigation` |
-| コードの仕組み・置き場所の質問 | `how`。理由の質問は `why`。かみ砕いた説明は `teach` |
-| PR を見守る | poteto-mode → `babysit`。緑の PR の束を入れるなら `shipping` |
-| オーナーに同じ指摘を2回された | `correct` |
+| A read-only check that takes minutes (look at settings or state, answer a question) | No pstack |
+| Continue an earlier thread or branch | poteto-mode, `session-pickup`. Only gathering your own recent work: `recall` |
+| Large work, work across several parts, or work that runs while the owner is away | `figure-it-out` and `show-me-your-work` |
+| Write a plan only, no implementation | poteto-mode, `multi-phase-plan` |
+| Fix a bug | poteto-mode, `bug-fix`. Add `tdd` when a cheap test is possible |
+| Add a feature or mechanism | poteto-mode, `feature` |
+| Restructure without changing behavior | poteto-mode, `refactoring` |
+| Write or change a skill, `CLAUDE.md`, or a runbook | poteto-mode, `authoring-a-skill` |
+| Several options that only building and comparing can settle | poteto-mode, `prototype`. Types and structure only: `architect` |
+| Investigate a cause or the current state | poteto-mode, `investigation` |
+| Questions on how code works or where it lives | `how`. Why questions: `why`. A plain explanation: `teach` |
+| Watch a PR | poteto-mode, `babysit`. Landing a batch of green PRs: `shipping` |
+| The owner gave the same correction twice | `correct` |
 
-選んだ入口は、チェックリストの見出しに「入口: poteto-mode / feature」のように書く。
+Write the chosen entry in the checklist header, for example "Entry: poteto-mode / feature".
 
-## 2. 作業の後に続けて回す
+## 2. Chain after the work
 
-入口の作業が終わったら、当てはまる行を上から順に回す。★はフックが確かめる。抜けていると、ターンの終わりに読むファイルを示して止められる。
+When the entry's work is done, run each matching row from the top. The hook checks the rows marked ★. If one is missing, the hook stops the turn once and names the file to read.
 
-| いつ | 回すもの |
+| When | Run |
 | --- | --- |
-| 原因や現状を調べて、結論を出す前 | 反対の向きで一度だけ調べる。結論を決めると、それに合う資料ばかり集めがちだから。「この結論が間違っているとしたら、どんな資料やデータがあるはずか」を1文で書き、それを探す（`source-reader` に任せてよい）。見つかったことと見つからなかったことを、結論と一緒に書く |
-| Web ページ、API、データファイルなど、外のデータを読むツールを変えたとき | 実際のデータで動かし、見つけるべきものを本当に見つけるかを確かめてから完了と言う。「何も見つからなかった」は、壊れて何も読めていないときにも同じ結果になるから（鳴らない火災報知器が、火事がないのか電池切れなのか分からないのと同じ）。例：古いリンクを探すツールなら、わざと切れたリンクを1つ混ぜて一覧に出ることを見る。処理が分かれる場合（下書きと公開済みなど）は、どちらの側も1件以上通して確かめる |
-| コードや Skill を変えて、レビューに出す前 | ★`no-comments`。変更が小さくても検査の仕組みやフックに触ったなら `blast-radius` |
-| 設計に争点がある、または変更が大きい | `interrogate` |
-| 文書や文章を書いた | ★`unslop`（文書と PR の文章） |
-| PR を出す | ★poteto-mode → `opening-a-pr`（中で `technical-writing`） |
-| PR を出した後 | ★poteto-mode → `babysit`。CI が緑でマージしてよいかは、リポジトリの決まりに従う |
-| PR をマージした後 | ★`reflect`。学んだことを、このリポジトリの Skill への変更案にする |
+| Before concluding an investigation | Search once in the opposite direction, because a settled conclusion pulls in only the sources that agree with it. Write one sentence: "If this conclusion were wrong, what source or data would exist?" Then look for it. Report what you found and what you did not find, next to the conclusion |
+| You changed a tool that reads outside data (web pages, APIs, data files) | Run it on real data and confirm it finds what it should before calling it done. "Found nothing" is also what a broken reader returns, like a smoke alarm that is silent because its battery is dead. Example: for a tool that finds dead links, plant one dead link and check that it shows up. When the code splits into paths (drafts and published, for example), push at least one item through each path |
+| Before review, after changing code or a skill | ★`no-comments`. Add `blast-radius` when the change touches checks or hooks, however small |
+| The design is contested, or the change is large | `interrogate` |
+| You wrote docs or prose | ★`unslop` (docs and PR text) |
+| Opening a PR | ★poteto-mode, `opening-a-pr` (it runs `technical-writing`) |
+| After opening a PR | ★poteto-mode, `babysit`. Whether you may merge on green CI is up to the repository's rules |
+| After merging a PR | ★`reflect`. Turn lessons into proposed edits to this repository's skills |
 
-★の判定は `<devkit>/scripts/pstack_usage.py` の `RULES` にある。行を足すときは、この表と `RULES` を一緒に直す。
+The ★ checks live in `RULES` in `<devkit>/scripts/pstack_usage.py`. When you add a row, change this table and `RULES` together.
 
-## 3. 監視
+## 3. Records
 
-各セッションの記録は、クラウドでは `/mnt/project-files/pstack-usage/`、Mac では `~/.claude/pstack-usage/` に1セッション1ファイルで残る。一覧は次で出す。
+Each session writes one file: `/mnt/project-files/pstack-usage/` in the cloud, `~/.claude/pstack-usage/` on a Mac. List them with:
 
 ```bash
 python3 ~/.claude/skills/devkit/scripts/pstack_usage.py report

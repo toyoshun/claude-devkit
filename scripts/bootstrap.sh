@@ -13,7 +13,7 @@
       NR<=12 && /^disable-model-invocation:/ {next}
       /^name: poteto-mode$/ {print "name: poteto-mode-auto"; next}
       {print}
-      /^---$/ && ++n==2 {print "\n> 自動で呼べる写し。本文の相対パスは `" src "/` を起点に読む。"}
+      /^---$/ && ++n==2 {print "\n> Model-invocable copy. Resolve relative paths in this file from `" src "/`."}
     ' "$src/SKILL.md" > "$dst/SKILL.md"
   ) || true
 
