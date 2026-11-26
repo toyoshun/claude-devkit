@@ -13,7 +13,8 @@ class Env:
         (self.cwd / ".git").mkdir(parents=True)
         (self.cwd / ".claude" / "skills" / "affiliate-weekly").mkdir(parents=True)
         self.devkit = tmp_path / "devkit"
-        (self.devkit / "skills" / "pstack-route").mkdir(parents=True)
+        for name in ("pstack-route", "goal-check"):
+            (self.devkit / "skills" / name).mkdir(parents=True)
         self.cache = tmp_path / "cache"
         for old, version in (("9", "0.9.0"), ("15", "0.15.48")):
             for name in SKILLS:
@@ -144,13 +145,27 @@ def test_pr_opened_blocks_once_per_missing_key(tmp_path: Path) -> None:
     assert rec["missing"] == [
         "playbook:opening-a-pr",
         "playbook:babysit",
+        "goal-check",
         "no-comments",
     ]
     assert "0.15.48/skills/no-comments/SKILL.md" in reason
+    assert "devkit/skills/goal-check/SKILL.md" in reason
     assert "0.9.0" not in reason
     assert rec["warned"] == rec["missing"]
     out2, rec2 = env.run()
     assert out2 == "" and rec2["missing"] == rec["missing"]
+
+
+def test_goal_check_counts_from_the_skill_tool_or_a_read(tmp_path: Path) -> None:
+    for i, (name, tool_input) in enumerate(
+        [
+            ("Skill", {"skill": "devkit:goal-check"}),
+            ("Read", {"file_path": "/d/skills/goal-check/SKILL.md"}),
+        ]
+    ):
+        env = Env(tmp_path / str(i)).edit().call("mcp__github__create_pull_request")
+        env.call(name, **tool_input)
+        assert "goal-check" not in env.run()[1]["missing"]
 
 
 def test_stop_hook_active_never_blocks_and_does_not_mark_warned(

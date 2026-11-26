@@ -7,6 +7,7 @@ A Claude Code plugin with shared pstack tooling that works in any repository.
 | Path | What it does |
 | --- | --- |
 | `skills/pstack-route/` | Picks the pstack entry point for the kind of work, and the skills to chain after it |
+| `skills/goal-check/` | Before reporting "done", a fresh agent checks the real result against the owner's own words, goal by goal, with evidence |
 | `scripts/pstack_usage.py` | Stop hook. Records which pstack skills a session used and flags skipped chain steps. `report` lists the records |
 | `scripts/edit_check.py` | PostToolUse hook. Checks the one file just edited: ruff for `*.py`, plus the repository's own checks from `.claude/devkit.json` |
 | `scripts/bootstrap.sh` | SessionStart hook. Rebuilds the `poteto-mode-auto` copy and fills `~/.claude/rules/`. It rewrites the principles rule every time and never overwrites existing model or Codex rules |
