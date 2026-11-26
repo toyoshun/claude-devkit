@@ -24,6 +24,10 @@ The goal is a new project that works like affi-lab from its first thread. Three 
 
 On a Mac, the one-time install below is enough for every project. Where the `codex` command exists, `bootstrap.sh` also installs the Codex rule. Personal Mac settings such as a Codex update wrapper stay outside this repository.
 
+## Where new tools go
+
+When any project creates or changes a skill, rule, hook or check, Claude decides whether every repository could use it unchanged. Generic ones come here by PR; repository-specific ones stay in that repository (`.claude/skills/`, `.claude/pstack-route.md`, `.claude/devkit.json`). The principles rule and the `pstack-route` chain both carry this step, so it applies in every project. Other machines pick up the change with `git pull` (Mac) or on the next fresh cloud container.
+
 ## Install
 
 Mac:

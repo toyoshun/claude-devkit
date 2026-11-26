@@ -41,12 +41,13 @@ When the entry's work is done, run each matching row from the top. The hook chec
 | --- | --- |
 | Before concluding an investigation | Search once in the opposite direction, because a settled conclusion pulls in only the sources that agree with it. Write one sentence: "If this conclusion were wrong, what source or data would exist?" Then look for it. Report what you found and what you did not find, next to the conclusion |
 | You changed a tool that reads outside data (web pages, APIs, data files) | Run it on real data and confirm it finds what it should before calling it done. "Found nothing" is also what a broken reader returns, like a smoke alarm that is silent because its battery is dead. Example: for a tool that finds dead links, plant one dead link and check that it shows up. When the code splits into paths (drafts and published, for example), push at least one item through each path |
+| You created or changed a skill, rule, hook or check | Decide whether every repository could use it unchanged. If yes, move it to claude-devkit with a PR there (add the repository to the session if it is missing) and keep only a pointer here. If it depends on this repository, keep it here |
 | Before review, after changing code or a skill | ★`no-comments`. Add `blast-radius` when the change touches checks or hooks, however small |
 | The design is contested, or the change is large | `interrogate` |
 | You wrote docs or prose | ★`unslop` (docs and PR text) |
 | Opening a PR | ★poteto-mode, `opening-a-pr` (it runs `technical-writing`) |
 | After opening a PR | ★poteto-mode, `babysit`. Whether you may merge on green CI is up to the repository's rules |
-| After merging a PR | ★`reflect`. Turn lessons into proposed edits to this repository's skills |
+| After merging a PR | ★`reflect`. Turn lessons into proposed skill edits: in this repository for lessons about it, in claude-devkit for lessons any repository could use |
 
 The ★ checks live in `RULES` in `<devkit>/scripts/pstack_usage.py`. When you add a row, change this table and `RULES` together.
 

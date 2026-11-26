@@ -15,6 +15,7 @@ Work this way on every task, before any pstack skill is opened. These come from 
 - Put validation and error handling at the boundaries (input, config, external APIs). Trust the inside (boundary-discipline).
 - When you add a new way, move the old callers and delete the old way in the same change. Leave no compatibility leftovers (migrate-callers-then-delete-legacy-apis).
 - When you write the same instruction a second time, turn it into a check or a script instead of more text (encode-lessons-in-structure).
+- When you create or change a skill, rule, hook or check, decide whether every repository could use it unchanged. If yes, it belongs in claude-devkit (https://github.com/toyoshun/claude-devkit): open a PR there instead of keeping it in this repository. If it depends on this repository's content or domain, keep it here, in `.claude/skills/`, `.claude/pstack-route.md` or `.claude/devkit.json`.
 
 ## While verifying
 - Before saying "done", check the real thing: run it, read the actual value, look at the diff. "No errors" is not a check (prove-it-works).
