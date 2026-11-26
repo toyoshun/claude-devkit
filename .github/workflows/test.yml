@@ -33,7 +33,7 @@ jobs:
         run: uv sync --frozen
 
       - name: Check shell syntax
-        run: bash -n install.sh scripts/bootstrap.sh
+        run: bash -n install.sh scripts/bootstrap.sh templates/cloud-setup.sh
 
       - name: Lint, type check and test
         run: |

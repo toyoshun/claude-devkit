@@ -15,6 +15,6 @@ A Claude Code plugin with shared tools for any repository: pstack routing, a pst
 
 ```bash
 uv sync --frozen
-bash -n install.sh scripts/bootstrap.sh
+bash -n install.sh scripts/bootstrap.sh templates/cloud-setup.sh
 uv run ruff format --check . && uv run ruff check . && uv run mypy && uv run pytest -q
 ```
