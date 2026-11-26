@@ -10,7 +10,7 @@ A Claude Code plugin with shared pstack tooling that works in any repository.
 | `skills/goal-check/` | Before reporting "done", a fresh agent checks the real result against the owner's own words, goal by goal, with evidence |
 | `scripts/pstack_usage.py` | Stop hook. Records which pstack skills a session used and flags skipped chain steps. `report` lists the records |
 | `scripts/edit_check.py` | PostToolUse hook. Checks the one file just edited: ruff for `*.py`, plus the repository's own checks from `.claude/devkit.json` |
-| `scripts/bootstrap.sh` | SessionStart hook. Rebuilds the `poteto-mode-auto` copy and fills `~/.claude/rules/`. It rewrites the principles rule every time and never overwrites existing model or Codex rules |
+| `scripts/bootstrap.sh` | SessionStart hook. Updates the checkout from GitHub (at most every 3 hours, only on a clean `main`), rebuilds the `poteto-mode-auto` copy and fills `~/.claude/rules/`. It rewrites the principles rule every time and never overwrites existing model or Codex rules |
 | `rules/` | `pstack-principles.md` (pstack's principles, short, loaded in every session), pstack model roles, and the Codex rule (installed only where `codex` exists) |
 | `templates/` | What to paste when starting a new project: `cloud-setup.sh`, `project-instructions.md`, `kickoff.md` |
 | `install.sh` | Installs everything into `~/.claude` |
@@ -27,7 +27,7 @@ On a Mac, the one-time install below is enough for every project. Where the `cod
 
 ## Where new tools go
 
-When any project creates or changes a skill, rule, hook or check, Claude decides whether every repository could use it unchanged. Generic ones come here by PR; repository-specific ones stay in that repository (`.claude/skills/`, `.claude/pstack-route.md`, `.claude/devkit.json`). The principles rule and the `pstack-route` chain both carry this step, so it applies in every project. Other machines pick up the change with `git pull` (Mac) or on the next fresh cloud container.
+When any project creates or changes a skill, rule, hook or check, Claude decides whether every repository could use it unchanged. Generic ones come here by PR; repository-specific ones stay in that repository (`.claude/skills/`, `.claude/pstack-route.md`, `.claude/devkit.json`). The principles rule and the `pstack-route` chain both carry this step, so it applies in every project. Other machines pick up the change on their own: the Mac checkout updates itself at session start, and each fresh cloud container clones the latest.
 
 ## Install
 
@@ -38,7 +38,7 @@ git clone https://github.com/toyoshun/claude-devkit ~/dev/claude-devkit
 bash ~/dev/claude-devkit/install.sh
 ```
 
-This links `~/.claude/skills/devkit` to the checkout, so Claude Code loads it as a plugin. `--copy` copies instead of linking. If pstack is missing and the `claude` command exists, it installs pstack too. Update with `git pull` in the checkout; the next session uses the new version.
+This links `~/.claude/skills/devkit` to the checkout, so Claude Code loads it as a plugin. `--copy` copies instead of linking. If pstack is missing and the `claude` command exists, it installs pstack too. It keeps itself current: at session start, `bootstrap.sh` runs `git pull --ff-only` when the checkout is on `main` with no local edits, at most once every 3 hours (`DEVKIT_SYNC_INTERVAL_MIN` changes that). Hooks use the new scripts right away; new skills and rules load from the session after. A failed pull never stops the session.
 
 Cloud environment: use `templates/cloud-setup.sh` (see above), or add this one line to an existing setup script.
 
