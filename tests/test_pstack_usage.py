@@ -23,24 +23,36 @@ class Env:
         self.records = tmp_path / "records"
         self.transcript = tmp_path / "s.jsonl"
         self.calls: list[tuple[str, dict[str, Any]]] = []
+        self.failed: set[int] = set()
 
     def call(self, name: str, **tool_input: Any) -> "Env":
         self.calls.append((name, tool_input))
         return self
 
-    def write(self, path: Path, calls: list[tuple[str, dict[str, Any]]]) -> None:
-        lines = ["not json"] + [
-            json.dumps(
-                {"message": {"content": [{"type": "tool_use", "name": n, "input": i}]}}
-            )
-            for n, i in calls
-        ]
+    def fail(self) -> "Env":
+        self.failed.add(len(self.calls) - 1)
+        return self
+
+    def write(
+        self,
+        path: Path,
+        calls: list[tuple[str, dict[str, Any]]],
+        failed: frozenset[int] = frozenset(),
+    ) -> None:
+        lines = ["not json"]
+        for n, (name, tool_input) in enumerate(calls):
+            use = {"type": "tool_use", "id": f"t{n}", "name": name, "input": tool_input}
+            result: dict[str, Any] = {"type": "tool_result", "tool_use_id": f"t{n}"}
+            if n in failed:
+                result["is_error"] = True
+            lines.append(json.dumps({"message": {"content": [use]}}))
+            lines.append(json.dumps({"message": {"content": [result]}}))
         path.write_text("\n".join(lines))
 
     def run(
         self, active: bool = False, cwd: Path | None = None
     ) -> tuple[str, dict[str, Any]]:
-        self.write(self.transcript, self.calls)
+        self.write(self.transcript, self.calls, frozenset(self.failed))
         payload = {
             "session_id": "s",
             "transcript_path": str(self.transcript),
@@ -193,3 +205,48 @@ def test_report_lists_newest_first(tmp_path: Path) -> None:
 def test_record_dir_prefers_env(tmp_path: Path, monkeypatch: Any) -> None:
     monkeypatch.setenv("PSTACK_USAGE_DIR", str(tmp_path))
     assert pstack_usage.record_dir() == tmp_path
+
+
+def test_route_picked_project_skill_clears_pstack(tmp_path: Path) -> None:
+    env = Env(tmp_path).edit().call("Skill", skill="devkit:pstack-route")
+    env.call("Read", file_path=".claude/skills/affiliate-weekly/SKILL.md")
+    out, rec = env.run()
+    assert out == "" and rec["missing"] == []
+
+
+def test_reading_only_the_router_does_not_clear_pstack(tmp_path: Path) -> None:
+    env = Env(tmp_path).edit().call("Skill", skill="devkit:pstack-route")
+    out, rec = env.run()
+    assert json.loads(out)["decision"] == "block"
+    assert rec["missing"] == ["pstack"]
+
+
+def test_gh_pr_create_in_bash_counts_as_pr_opened(tmp_path: Path) -> None:
+    env = Env(tmp_path).edit().call("Skill", skill="poteto-mode")
+    env.call("Bash", command="git push -u origin b && gh pr create --title t")
+    _, rec = env.run()
+    assert "pr_opened" in rec["triggers"]
+    assert "playbook:opening-a-pr" in rec["missing"]
+
+
+def test_gh_pr_merge_in_bash_counts_as_pr_merged(tmp_path: Path) -> None:
+    env = Env(tmp_path).edit().call("Skill", skill="poteto-mode")
+    env.call("Bash", command="gh pr merge 120 --merge --delete-branch")
+    _, rec = env.run()
+    assert "pr_merged" in rec["triggers"] and "reflect" in rec["missing"]
+
+
+def test_refused_pr_commands_do_not_count(tmp_path: Path) -> None:
+    env = Env(tmp_path).edit().call("Skill", skill="poteto-mode")
+    env.call("Bash", command="gh pr create --title t").fail()
+    env.call("Bash", command="gh pr merge 120 --merge").fail()
+    env.call("mcp__github__merge_pull_request").fail()
+    _, rec = env.run()
+    assert rec["triggers"] == ["changed", "code"] and rec["missing"] == []
+
+
+def test_reflect_message_allows_a_one_line_no_lessons_pass(tmp_path: Path) -> None:
+    env = Env(tmp_path).edit().call("Skill", skill="poteto-mode")
+    env.call("Bash", command="gh pr merge 1")
+    out, _ = env.run()
+    assert "no lesson" in json.loads(out)["reason"]

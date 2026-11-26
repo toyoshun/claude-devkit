@@ -47,7 +47,7 @@ When the entry's work is done, run each matching row from the top. The hook chec
 | You wrote docs or prose | ★`unslop` (docs and PR text) |
 | Opening a PR | ★poteto-mode, `opening-a-pr` (it runs `technical-writing`) |
 | After opening a PR | ★poteto-mode, `babysit`. Whether you may merge on green CI is up to the repository's rules |
-| After merging a PR | ★`reflect`. Turn lessons into proposed skill edits: in this repository for lessons about it, in claude-devkit for lessons any repository could use |
+| After merging a PR | ★`reflect`. Turn lessons into proposed skill edits: in this repository for lessons about it, in claude-devkit for lessons any repository could use. With no lesson, say so in one line |
 
 The ★ checks live in `RULES` in `<devkit>/scripts/pstack_usage.py`. When you add a row, change this table and `RULES` together.
 
