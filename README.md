@@ -21,9 +21,9 @@ A Claude Code plugin with shared pstack tooling that works in any repository.
 
 The goal is a new project that works like affi-lab from its first thread. Three pastes, all from `templates/`:
 
-1. **Cloud environment.** In the environment's settings, paste `templates/cloud-setup.sh` as the setup script. It installs claude-devkit (which installs pstack) and each repo's locked dependencies (`uv.lock`, `package-lock.json`). The same script works for every project, so one personal environment can serve all of them.
+1. **Cloud environment.** In the environment's settings, paste `templates/cloud-setup.sh` as the setup script. It installs claude-devkit (which installs pstack) and each repo's locked dependencies (`uv.lock`, `package-lock.json`). The same script works for every project, so one personal environment can serve all of them. Set its network access to unrestricted: an environment Claude creates starts limited to package registries, so outside APIs and git clones of repositories not attached to the session can fail.
 2. **Project instructions.** Paste the block in `templates/project-instructions.md`. It sets the pstack routine, Codex use, the language rule and how to report to the owner.
-3. **First message.** Paste the block in `templates/kickoff.md` into the project's first thread. Claude then checks the install, writes `CLAUDE.md`, adds `.claude/pstack-route.md` and `.claude/devkit.json` only when the repo needs them, adds CI if missing, and saves the project's decisions to memory.
+3. **First message.** Paste the block in `templates/kickoff.md` into the project's first thread. Claude then checks the install, writes `CLAUDE.md`, adds `.claude/pstack-route.md` and `.claude/devkit.json` only when the repo needs them, adds CI if missing, and saves the project's decisions to memory. If the repository is empty, it first pushes one empty commit to `main`, because a pull request needs a base branch.
 
 On a Mac, the one-time install below is enough for every project. Where the `codex` command exists, `bootstrap.sh` also installs the Codex rule. Personal Mac settings such as a Codex update wrapper stay outside this repository.
 
