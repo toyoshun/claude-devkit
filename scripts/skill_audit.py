@@ -33,8 +33,8 @@ HOOK_LIMIT = 20
 REVIEWED = Path(__file__).absolute().with_name("skill_audit_reviewed.txt")
 
 FETCH = r"\b(?:curl|wget|iwr|Invoke-WebRequest|irm|Invoke-RestMethod)\b"
-SHELL = r"(?:sudo\s+)?(?:ba|z|da|k)?sh|python3?|node|iex|Invoke-Expression"
-URL = r"https?://"
+SHELL = r"(?:ba|z|da|k)?sh|python3?|node|iex|Invoke-Expression"
+ENV = r"(?:\w+=\S*\s+)*(?:sudo(?:\s+-\w+)*\s+)?"
 
 
 class Rule(NamedTuple):
@@ -48,7 +48,7 @@ RULES: tuple[Rule, ...] = (
     Rule(
         "remote-exec",
         re.compile(
-            rf"{FETCH}[^\n|]*\|\s*(?:{SHELL})\b"
+            rf"{FETCH}[^\n|]*\|\s*{ENV}(?:{SHELL})\b(?!\s+-[ce]\b)"
             rf"|(?:ba|z)?sh\s+<\(\s*{FETCH}"
             rf"|\beval\s+\"?\$\(\s*{FETCH}"
         ),
@@ -56,8 +56,17 @@ RULES: tuple[Rule, ...] = (
         "runs a script downloaded at run time, so nobody reviewed what executes",
     ),
     Rule(
+        "download-script",
+        re.compile(
+            rf"{FETCH}[^\n]*(?:\s-o\s*|\s--output[\s=]|\s-O\s+)\S*"
+            r"\.(?:sh|bash|zsh|py|ps1|js|mjs)\b"
+        ),
+        False,
+        "saves a script from the internet, usually to run it in a later step",
+    ),
+    Rule(
         "encoded-exec",
-        re.compile(rf"base64\s+(?:-d|-D|--decode)\b[^\n]*\|\s*(?:{SHELL})\b"),
+        re.compile(rf"base64\s+(?:-d|-D|--decode)\b[^\n]*\|\s*{ENV}(?:{SHELL})\b"),
         False,
         "decodes hidden text and runs it",
     ),
@@ -70,13 +79,11 @@ RULES: tuple[Rule, ...] = (
     Rule(
         "sends-data",
         re.compile(
-            rf"\bcurl\b[^\n]*(?:\s-d\b|\s-F\b|\s-T\b|--data|--form|--upload-file"
-            rf"|-X\s*POST|--request\s+POST)[^\n]*{URL}"
-            rf"|\bcurl\b[^\n]*{URL}[^\n]*(?:\s-d\b|\s-F\b|\s-T\b|--data|--form"
-            rf"|--upload-file|-X\s*POST|--request\s+POST)"
-            rf"|\bwget\b[^\n]*--post-(?:data|file)"
+            r"\bcurl\b[^\n]*(?:\s-d\b|\s-F\b|\s-T\b|--data|--form|--upload-file"
+            r"|-X\s*POST|--request\s+POST)"
+            r"|\bwget\b[^\n]*--post-(?:data|file)"
             r"|\b(?:requests|httpx|axios)\.(?:post|put)\s*\("
-            r"|\bfetch\s*\([^\n]*method\s*:\s*['\"](?:POST|PUT)"
+            r"|\bmethod\s*:\s*['\"](?:POST|PUT)['\"]"
             r"|\burlopen\s*\([^\n]*data\s*="
         ),
         False,
@@ -98,6 +105,22 @@ class Finding(NamedTuple):
         return f"{self.path}:{self.line}: {self.rule.name}: {snippet}"
 
 
+def logical_lines(lines: list[str]) -> list[tuple[int, str]]:
+    joined: list[tuple[int, str]] = []
+    start = 0
+    parts: list[str] = []
+    for number, line in enumerate(lines, 1):
+        if not parts:
+            start = number
+        parts.append(line[:-1] if line.endswith("\\") else line)
+        if not line.endswith("\\"):
+            joined.append((start, " ".join(parts)))
+            parts = []
+    if parts:
+        joined.append((start, " ".join(parts)))
+    return joined
+
+
 def scan_file(path: Path) -> list[Finding]:
     try:
         if path.stat().st_size > MAX_BYTES:
@@ -108,7 +131,7 @@ def scan_file(path: Path) -> list[Finding]:
     loaded = path.name == "SKILL.md" or path.parent.name == "commands"
     return [
         Finding(path, number, rule, line)
-        for number, line in enumerate(lines, 1)
+        for number, line in logical_lines(lines)
         for rule in RULES
         if (loaded or not rule.loaded_only) and rule.pattern.search(line)
     ]

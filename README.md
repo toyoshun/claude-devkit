@@ -10,7 +10,7 @@ A Claude Code plugin with shared pstack tooling that works in any repository.
 | `skills/goal-check/` | Before reporting "done", a fresh agent checks the real result against the owner's own words, goal by goal, with evidence |
 | `scripts/pstack_usage.py` | Stop hook. Records which pstack skills a session used and flags skipped chain steps. `report` lists the records |
 | `scripts/edit_check.py` | PostToolUse hook. Checks the one file just edited: ruff for `*.py`, plus the repository's own checks from `.claude/devkit.json` |
-| `scripts/skill_audit.py` | SessionStart hook and command. Flags risky lines in installed skills and plugins: scripts downloaded and run on the spot, shell commands run when a skill loads, hidden encoded commands, and data sent to outside servers. Lines a person judged safe go in `scripts/skill_audit_reviewed.txt` |
+| `scripts/skill_audit.py` | SessionStart hook and command. Flags risky lines in installed skills and plugins: scripts downloaded and run on the spot or saved to run later, shell commands run when a skill loads, hidden encoded commands, and data sent to outside servers. Lines a person judged safe go in `scripts/skill_audit_reviewed.txt` |
 | `scripts/reply_language.py` | Makes Claude rewrite a reply to the owner in Japanese when it slipped into English. PreToolUse on chat-posting MCP tools (`post_message`, `edit_message`) denies the post; the Stop hook does the same for terminal replies. Code, URLs and paths do not count |
 | `scripts/bootstrap.sh` | SessionStart hook. Updates the checkout from GitHub (at most every 3 hours, only on a clean `main`), rebuilds the `poteto-mode-auto` copy and fills `~/.claude/rules/`. It rewrites the principles rule every time and never overwrites existing model or Codex rules |
 | `rules/` | `pstack-principles.md` (pstack's principles, short, loaded in every session), pstack model roles, and the Codex rule (installed only where `codex` exists) |
@@ -59,7 +59,7 @@ git clone --depth 1 <skill-repo-url> /tmp/skill-check
 python3 -I ~/.claude/skills/devkit/scripts/skill_audit.py /tmp/skill-check
 ```
 
-Installed skills are audited again at every session start, so an update that adds a risky line shows up before the skill is used. The audit reads lines, not meaning: a clean result lowers the risk and does not prove a skill safe.
+Installed skills are audited again at every session start, so an update that adds a risky line shows up before the skill is used. The audit joins lines continued with a backslash and reads each one; it does not read meaning: a clean result lowers the risk and does not prove a skill safe.
 
 ## Per-repository additions
 
