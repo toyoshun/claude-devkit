@@ -50,7 +50,8 @@ RULES: tuple[Rule, ...] = (
         re.compile(
             rf"{FETCH}[^\n|]*\|\s*{ENV}(?:{SHELL})\b(?!\s+-[ce]\b)"
             rf"|(?:ba|z)?sh\s+<\(\s*{FETCH}"
-            rf"|\beval\s+\"?\$\(\s*{FETCH}"
+            rf"|\b(?:eval|(?:ba|z)?sh\s+-c)\s+[\"']?\$\(\s*{FETCH}"
+            r"|\bexec\s*\(\s*(?:urllib\.request\.)?urlopen"
         ),
         False,
         "runs a script downloaded at run time, so nobody reviewed what executes",
@@ -58,7 +59,7 @@ RULES: tuple[Rule, ...] = (
     Rule(
         "download-script",
         re.compile(
-            rf"{FETCH}[^\n]*(?:\s-o\s*|\s--output[\s=]|\s-O\s+)\S*"
+            rf"{FETCH}[^\n]*(?:\s-o\s*|\s--output[\s=]|\s-O\s+|>\s*)\S*"
             r"\.(?:sh|bash|zsh|py|ps1|js|mjs)\b"
         ),
         False,
@@ -79,11 +80,13 @@ RULES: tuple[Rule, ...] = (
     Rule(
         "sends-data",
         re.compile(
-            r"\bcurl\b[^\n]*(?:\s-d\b|\s-F\b|\s-T\b|--data|--form|--upload-file"
+            r"\bcurl\b[^\n]*(?:\s-[A-Za-z]*[dFT]\b|--data|--json|--form|--upload-file"
             r"|-X\s*POST|--request\s+POST)"
             r"|\bwget\b[^\n]*--post-(?:data|file)"
             r"|\b(?:requests|httpx|axios)\.(?:post|put)\s*\("
-            r"|\bmethod\s*:\s*['\"](?:POST|PUT)['\"]"
+            r"|\bmethod\s*:\s*['\"](?:POST|PUT|post|put)['\"]"
+            r"|\brequests\.request\(\s*['\"](?:POST|PUT)"
+            r"|\bsendBeacon\s*\("
             r"|\burlopen\s*\([^\n]*data\s*="
         ),
         False,
