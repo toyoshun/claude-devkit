@@ -1,13 +1,7 @@
 """Make Claude rewrite a reply to the owner in Japanese when it slipped into English.
 
-    pre-tool  PreToolUse on chat-posting MCP tools: deny the post, Claude resends.
-    stop      Stop hook for terminal sessions: block the stop, Claude rewrites.
-
-Code, URLs and paths are removed before counting. A reply counts as English
-when it has at least MIN_LATIN Latin letters and more than RATIO times as many
-as Japanese characters. Kanji count only when kana are present, so Chinese is
-not taken for Japanese.
-Stdlib only and 3.9-safe, because the hook runs under the system python3.
+pre-tool  PreToolUse on chat-posting MCP tools: deny the post, Claude resends.
+stop      Stop hook for terminal sessions: block the stop, Claude rewrites.
 """
 
 from __future__ import annotations
@@ -66,22 +60,30 @@ def transcript_entries(path: Path) -> list[dict[str, Any]]:
     return entries
 
 
-def last_reply(entries: list[dict[str, Any]]) -> str | None:
-    """None when replies go through a posting tool, so the final text is unread."""
-    texts: list[str] = []
-    for message in entries:
-        content = message.get("content")
-        if not isinstance(content, list):
-            continue
-        for item in content:
-            if not isinstance(item, dict):
-                continue
-            if item.get("type") == "tool_use" and POSTING_TOOL.search(
-                str(item.get("name", ""))
-            ):
-                return None
-            if message.get("role") == "assistant" and item.get("type") == "text":
-                texts.append(str(item.get("text", "")))
+def contents(entries: list[dict[str, Any]]) -> list[tuple[str, dict[str, Any]]]:
+    return [
+        (str(message.get("role", "")), item)
+        for message in entries
+        if isinstance(message.get("content"), list)
+        for item in message["content"]
+        if isinstance(item, dict)
+    ]
+
+
+def replied_via_tool(entries: list[dict[str, Any]]) -> bool:
+    return any(
+        item.get("type") == "tool_use"
+        and bool(POSTING_TOOL.search(str(item.get("name", ""))))
+        for _, item in contents(entries)
+    )
+
+
+def last_reply(entries: list[dict[str, Any]]) -> str:
+    texts = [
+        str(item.get("text", ""))
+        for role, item in contents(entries)
+        if role == "assistant" and item.get("type") == "text"
+    ]
     return texts[-1] if texts else ""
 
 
@@ -102,12 +104,11 @@ def stop(payload: dict[str, Any]) -> str:
     if payload.get("stop_hook_active"):
         return ""
     entries = transcript_entries(Path(str(payload.get("transcript_path", ""))))
-    reply = last_reply(entries)
-    if reply is None:
+    if replied_via_tool(entries):
         return ""
     text = payload.get("last_assistant_message")
     if not isinstance(text, str):
-        text = reply
+        text = last_reply(entries)
     if not is_english(text):
         return ""
     return json.dumps({"decision": "block", "reason": REASON})

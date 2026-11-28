@@ -1,4 +1,3 @@
 # Findings a person read and judged safe: rule<TAB>the exact line, stripped.
-# A changed line no longer matches, so it is flagged again.
 # pstack make-bot-ui: Tailscale official installer, run only when the owner sets up a bot UI.
 remote-exec	curl -fsSL https://tailscale.com/install.sh | sudo sh

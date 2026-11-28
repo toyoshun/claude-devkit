@@ -1,9 +1,7 @@
 """Find risky patterns in skills and plugins before they are used.
 
-    python3 skill_audit.py <dir-or-file>...   # exit 1 when anything is found
-    python3 skill_audit.py session-start      # SessionStart hook over ~/.claude
-
-Stdlib only and 3.9-safe, because the hook runs under the system python3.
+python3 skill_audit.py <dir-or-file>...   # exit 1 when anything is found
+python3 skill_audit.py session-start      # SessionStart hook over ~/.claude
 """
 
 from __future__ import annotations
